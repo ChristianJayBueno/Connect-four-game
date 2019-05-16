@@ -1,0 +1,111 @@
+from collections import namedtuple
+import socket
+
+GameConnection = namedtuple('GameConnection', ['socket', 'input', 'output'])
+
+OKAY = 0
+INVALID = 1
+WINNER_RED = 2
+WINNER_YELLOW = 3
+NONE = 4 
+
+_SHOW_DEBUG_TRACE  = False
+
+def connect_game(host: str, port: int) -> GameConnection:
+    ''' Connects to Connect Four server. '''
+    connectfour_socket = socket.socket() #socket.socket() returns a socket object
+    connectfour_socket.connect((host, port)) #connects to a server of specified host and port
+    connectfour_input = connectfour_socket.makefile('r') #creates pseudofile used for communication
+    connectfour_output = connectfour_socket.makefile('w')
+        
+    return GameConnection(socket = connectfour_socket, input = connectfour_input, output = connectfour_output)
+
+    
+def welcome(connection: GameConnection, username: str) -> None:
+    ''' Establishes I32CSFP protocol. '''
+    _write_line(connection, 'I32CFSP_HELLO ' + username)
+    response = _read_line(connection)
+
+    if response.startswith('WELCOME '):
+        single_player_game(connection)
+    
+    else:
+        close(connection) #if server responds with something other than 'WELCOME', connection is closed
+        
+def single_player_game(connection: GameConnection) -> None:
+    ''' Requests a game against artificial intelligence from the server. '''
+    request = 'AI_GAME'
+    _request_game(connection, request)
+    _read_line(connection)
+
+def client_drop(connection: GameConnection, col: int) -> OKAY or INVALID:
+    ''' Client sends a 'drop' move to the server. '''
+    _write_line(connection, 'DROP ' + col)
+    response = _read_line(connection)
+
+    if response == 'OKAY\r\n':
+        return OKAY
+    elif response == 'INVALID\r\n':
+        return INVALID
+    
+
+def client_pop(connection: GameConnection, col: int) -> OKAY or INVALID:
+    ''' Client sends a 'pop' move to the server. '''
+    _write_line(connection, 'POP ' + col)
+    response = _read_line(connection)
+
+    if response == 'OKAY\r\n':
+        return OKAY
+    elif response == 'INVALID\r\n':
+        return INVALID
+    
+
+def server_move(connection) -> list:
+    ''' Receives a move from the server. '''
+    response = _read_line(connection)
+    response1 = _read_line(connection)
+    
+    return response
+    
+def check_winner(connection: GameConnection) -> WINNER_RED or WINNER_YELLOW:
+    ''' Checks for a winner and returns the winning player. '''
+    response = _read_line(connection)
+
+    if response.startswith('WINNER_RED '):
+        return WINNER_RED
+    elif response.startswith('WINNER_YELLOW '):
+        return WINNER_YELLOW
+    else:
+        return NONE
+    
+
+def close(connection: GameConnection) -> None:
+    ''' Closes the connection to the I32CFSP server. '''
+    connection.input.close()
+    connection.output.close()
+    connection.socket.close()
+    
+def _read_line(connection: GameConnection) -> str: #receives text from the server
+    ''' Reads line of text from server and returns the text without a newline. '''
+    text = connection.input.readline()[:-1]
+
+    if _SHOW_DEBUG_TRACE:
+        print('RCVD: ' + text)
+
+    return text
+
+def _write_line(connection: GameConnection, col: int) -> None: #sends text to the server
+    ''' Writes a line of text to the server followed by newline sequence. '''
+    connection.output.write(col + '\r\n')
+    connection.output.flush()
+
+    if _SHOW_DEBUG_TRACE:
+        print('SENT: ' + col)
+
+def _request_game(connection: GameConnection, line: str) -> None:
+    ''' Requests a game against the AI. '''
+    connection.output.write(line + '\r\n')
+    connection.output.flush()
+
+    if _SHOW_DEBUG_TRACE:
+        print('SENT: ' + line)
