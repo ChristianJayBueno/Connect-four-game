@@ -1,0 +1,135 @@
+import connectfour
+import connectfour_game_logic
+import connectfour_console
+import connectfour_server
+from collections import namedtuple
+import socket
+import sys
+
+
+def _main_function():
+    connectfour_console.greeting()
+    username = _get_username()
+    print()
+    connection = _make_connection()
+    print()
+    GameState = connectfour.new_game() #new game board is created
+    connectfour_game_logic.display_game_board(GameState)
+    connectfour_game_logic._display_player_turn(GameState)
+    print()
+    connectfour_server.welcome(connection, username) #establishes server protocol
+    _play_game(connection, GameState)
+    connectfour_server.close(connection)
+
+def _make_connection() -> connectfour_server.GameConnection:
+    ''' Establishes client connection to ConnectFour Server. '''
+    host = _get_host()
+    port = _get_port()
+
+    connection = connectfour_server.connect_game(host, port)
+    return connection
+
+def _client_move(connection: connectfour_server.GameConnection, GameState: connectfour.GameState) -> None:
+    ''' Executes client move. '''
+    move = _get_client_move()
+    print()
+    column = _get_column()
+
+    if move == "drop":
+        GameState = connectfour.drop(GameState, int(column) - 1)
+        connectfour_game_logic.display_game_board(GameState)
+        _check_winner(GameState)
+        connectfour_server.client_drop(connection, column)
+        return GameState
+
+    elif move == "pop":
+        GameState = connectfour.pop(GameState, int(column) - 1)
+        connectfour_game_logic.display_game_board(GameState)
+        _check_winner(GameState)
+        connectfour_server.client_drop(connection, column)
+        return GameState
+
+    
+
+def _play_game(connection: connectfour_server.GameConnection, GameState: connectfour.GameState) -> connectfour.GameState:
+    ''' Executes server move and updates the GameState. '''
+    while True:
+        try:
+            GameState = _client_move(connection, GameState)
+            server_response = connectfour_server.server_move(connection)
+            column = server_response.split()[1]
+
+            if "DROP" in server_response:
+                GameState = connectfour.drop(GameState, int(column) - 1)
+                connectfour_game_logic.display_game_board(GameState)        
+
+            if "POP" in server_response:
+                GameState = connectfour.pop(GameState, int(column) - 1)
+                connectfour_game_logic.display_game_board(GameState)
+        except:
+            IndexError
+        finally:
+            if _check_winner(GameState):
+                break
+            
+
+        
+def _get_client_move() -> str:
+    ''' Prompts user for a move and returns the string. '''
+    while True:
+        try:
+            move = input('Would you like to drop or pop? (Type "drop" or "pop"): ')
+            if move in ("drop", "pop"):
+                return move
+            elif move not in ("drop", "pop"):
+                raise connectfour.InvalidMoveError
+        except connectfour.InvalidMoveError:
+            print()
+            print("Invalid input.(Type 'drop' or 'pop'): ")
+            print()
+
+def _get_column() -> int:
+    ''' Prompts user for a column and returns the integer. '''
+    column = input("In which column would you like to execute the move? (Type and integer): ")
+    return column
+        
+def _get_host() -> str:
+    ''' Prompts user for a HOST and returns the string. '''
+    host = input('Please enter the HOST: ')
+    return host
+
+def _get_port() -> int:
+    ''' Prompts user for a PORT and returns the integer. '''
+    try:
+        port = int(input('Please enter the PORT: '))
+        return port
+    except ValueError: #Handles case where user inputs string for port number.x
+        print()
+        print('PORT value must be an integer. Please try again.')
+        print()
+        _make_connection()
+
+def _get_username() -> str:
+    ''' Prompts user for username and returns the string. '''
+    username = input('Please enter your username: ')
+
+    if ' ' in username or username.startswith('\t'):
+        print()
+        print('Username must not contain whitespace characters. Please try again.')
+        print()
+        _get_username()
+
+    else:
+        return username
+
+def _check_winner(GameState) -> connectfour.GameState:
+    if not connectfour.winner(GameState):
+        print()
+        connectfour_game_logic._display_player_turn(GameState)
+    else:
+        connectfour_game_logic._winner_banner(GameState)
+        sys.exit()
+
+
+if __name__ == '__main__':
+    _main_function()
