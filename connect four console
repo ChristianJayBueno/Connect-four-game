@@ -1,0 +1,114 @@
+import connectfour
+import connectfour_game_logic
+import sys
+
+def main_function():
+    '''
+    The main function to begin the game of connect four
+    '''
+    greeting()
+    GameState = connectfour.new_game()
+    connectfour_game_logic.display_game_board(GameState)
+    print()
+    connectfour_game_logic._display_player_turn(GameState)
+    print()
+    move_input(GameState)
+
+def greeting() -> str:
+    '''A greeting at the start of the game.'''
+    print('''Welcome to the game of connect four! The objective of the game is to place four of your pieces in a row.''')
+    print('''To play the game, you must either input 'drop' or 'pop' when it is your turn.''')
+    print()
+    
+
+def move_input(GameState) -> None:
+    "Take user input and calls corresponding function."
+    while True:
+        user_input = input("Would you like to drop or pop? (Type drop or pop): ")
+        print()
+        if user_input == "drop":
+            move_command_drop(GameState)
+        if user_input == "pop":
+            move_command_pop(GameState)
+        elif user_input != "drop" or "pop":
+            print("That is not a valid move command. Please try again.")
+            print()
+            connectfour_game_logic.display_game_board(GameState)
+            print()
+            connectfour_game_logic._display_player_turn(GameState)
+            print()
+            move_input(GameState)
+        
+def move_command_drop(GameState) -> connectfour.GameState:
+    "Execute drop command and return the GameState"
+    while True:
+        try:
+            column_num = int(input("What column would you like to drop the piece in? (Type an integer): "))
+            print()
+            GameState = connectfour.drop(GameState, column_num - 1)
+            connectfour_game_logic.display_game_board(GameState)
+            check_winner(GameState)
+            print()
+            move_input(GameState)
+        except ValueError:
+            print()
+            print("That is not a valid column. Please try again.")
+            print()
+            connectfour_game_logic.display_game_board(GameState)
+            print()
+            connectfour_game_logic._display_player_turn(GameState)
+            print()
+            move_input(GameState)
+        except connectfour.InvalidMoveError:
+            print("That is not a valid column. Please try again.")
+            print()
+            connectfour_game_logic.display_game_board(GameState)
+            print()
+            connectfour_game_logic._display_player_turn(GameState)
+            print()
+            move_input(GameState)
+
+    
+def move_command_pop(GameState) -> connectfour.GameState:
+    "Execute pop command and return the GameState"
+    while True:
+        try:
+            column_num = int(input("What column would you like to pop the piece in? (Type an integer): "))
+            GameState = connectfour.pop(GameState, column_num - 1)
+            connectfour_game_logic.display_game_board(GameState)
+            check_winner(GameState)
+            move_input(GameState)
+        except ValueError:
+            print()
+            print("That is not a valid column. Please try again.")
+            print()
+            connectfour_game_logic.display_game_board(GameState)
+            print()
+            connectfour_game_logic._display_player_turn(GameState)
+            print()
+            move_input(GameState)
+
+        except connectfour.InvalidMoveError:
+            print()
+            print("That is not a valid column. Please try again.")
+            print()
+            connectfour_game_logic.display_game_board(GameState)
+            print()
+            connectfour_game_logic._display_player_turn(GameState)
+            print()
+            move_input(GameState)
+            
+            
+def check_winner(GameState) -> connectfour.GameState:
+    '''
+    Checks to find the winner of the game
+    '''
+    if not connectfour.winner(GameState):
+        connectfour_game_logic._display_player_turn(GameState)
+    else:
+        connectfour_game_logic._winner_banner(GameState)
+        sys.exit()
+
+
+if __name__ == '__main__':
+    main_function()
