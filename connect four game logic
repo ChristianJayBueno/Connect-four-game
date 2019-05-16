@@ -1,0 +1,44 @@
+import connectfour
+
+def _display_column_numbers() -> str:
+    ''' Prints the top row of numbers, indicating how many columns are in the board. '''
+    column_numbers = []
+    for num in list(range((connectfour.BOARD_COLUMNS))[:-1]): #excludes last number 
+        print(num + 1, end = "  ")
+    print(connectfour.BOARD_COLUMNS) #prints last number with zero spaces following it
+
+def display_game_board(GameState) -> str:
+    ''' Displays entire game board. '''
+    _display_column_numbers()
+    for row in range(connectfour.BOARD_ROWS):
+        for column in range(connectfour.BOARD_COLUMNS):
+            gamestate = GameState.board[column][row]
+            if gamestate == 0:
+                print(".  ", end = '')
+            elif gamestate == 1:
+                print("R  ", end = '')
+            elif gamestate == 2:
+                print("Y  ", end = '')
+            else:
+                print(gamestate)
+        print()
+    print()
+
+def _display_player_turn(GameState) -> str:
+    ''' Displays the color of the current player turn. '''
+    if GameState.turn == 1:
+        print("Player: RED")
+    else:
+        if GameState.turn ==2:
+            print("Player: YELLOW")
+
+def _winner_banner(GameState) -> str:
+    ''' Declares the winning player. '''
+    if connectfour.winner(GameState) == 1:
+        print("Player RED has won the game!")
+    elif connectfour.winner(GameState) == 2:
+        print("Player YELLOW has won the game!")
+    else:
+        pass
+
+
